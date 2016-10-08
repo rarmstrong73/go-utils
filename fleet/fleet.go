@@ -257,6 +257,17 @@ func ListUnitStates(host string) (unitStates []UnitState) {
 	return unitStates
 }
 
+// ListUnitStatesByName returns a list of unit states with the given name
+func ListUnitStatesByName(host, name string) (unitStates []UnitState) {
+	allUnitStates := ListUnitStates(host)
+	for _, unitState := range allUnitStates {
+		if strings.HasPrefix(unitState.Name, fmt.Sprintf("%s@", name)) {
+			unitStates = append(unitStates, unitState)
+		}
+	}
+	return unitStates
+}
+
 // GetUnitStatesByMachineID returns the unit states with the given machineID
 func GetUnitStatesByMachineID(host, machineID string) (unitStates []UnitState) {
 	url := fmt.Sprintf("http://%s:%d/fleet/%s/state?machineID=%s", host, port, apiVersion, machineID)
