@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 )
 
 var port = 49153
@@ -123,6 +124,21 @@ func ListUnits(host string) (units []Unit) {
 	}
 
 	return units
+}
+
+// ListUnitsByName returns the template and any known units with the given name
+func ListUnitsByName(host, name string) (template Unit, units []Unit) {
+	allUnits := ListUnits(host)
+	for _, unit := range allUnits {
+		if strings.HasPrefix(unit.Name, fmt.Sprintf("%s@", name)) {
+			if strings.Contains(unit.Name, "@.") {
+				template = unit
+			} else {
+				units = append(units, unit)
+			}
+		}
+	}
+	return template, units
 }
 
 // CreateUnit creates a unit with the given name, desired state, and options
