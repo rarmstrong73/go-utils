@@ -84,9 +84,7 @@ type ErrorResponse struct {
 
 // ListUnits returns all fleet units in the host's cluster
 func ListUnits(host string) (units []Unit) {
-	log.Println("Getting fleet units information...")
 	url := fmt.Sprintf("http://%s:%d/fleet/%s/units", host, port, apiVersion)
-	log.Println("Calling out to", url)
 	response := httpGetResponse(url)
 	defer response.Body.Close()
 
@@ -105,9 +103,7 @@ func ListUnits(host string) (units []Unit) {
 	nextPageToken := fleetResponse.NextPageToken
 
 	for nextPageToken != "" {
-		log.Println("Getting next page token...")
 		nextPageURL := fmt.Sprintf("%s?nextPageToken=%s", url, nextPageToken)
-		log.Println("Calling out to", nextPageURL)
 		resp := httpGetResponse(nextPageURL)
 		defer resp.Body.Close()
 
@@ -212,9 +208,7 @@ func DestroyUnit(host, name string) error {
 
 // ListUnitStates returns all unit states in the host's cluster
 func ListUnitStates(host string) (unitStates []UnitState) {
-	log.Println("Getting information about fleet states...")
 	url := fmt.Sprintf("http://%s:%d/fleet/%s/state", host, port, apiVersion)
-	log.Println("Calling out to", url)
 	response := httpGetResponse(url)
 	defer response.Body.Close()
 
@@ -233,9 +227,7 @@ func ListUnitStates(host string) (unitStates []UnitState) {
 	nextPageToken := fleetStateResponse.NextPageToken
 
 	for nextPageToken != "" {
-		log.Println("Getting next page token...")
 		nextPageURL := fmt.Sprintf("%s?nextPageToken=%s", url, nextPageToken)
-		log.Println("Calling out to", nextPageURL)
 		resp := httpGetResponse(nextPageURL)
 		defer resp.Body.Close()
 
@@ -310,9 +302,7 @@ func GetUnitStatesByUnitName(host, unitName string) (unitStates []UnitState) {
 
 // ListMachines returns all machines in the host's cluster
 func ListMachines(host string) (machines []Machine) {
-	log.Println("Getting information about fleet machines...")
 	url := fmt.Sprintf("http://%s:%d/fleet/%s/machines", host, port, apiVersion)
-	log.Println("Calling out to", url)
 	response := httpGetResponse(url)
 	defer response.Body.Close()
 
@@ -331,9 +321,7 @@ func ListMachines(host string) (machines []Machine) {
 	nextPageToken := fleetMachinesResponse.NextPageToken
 
 	for nextPageToken != "" {
-		log.Println("Getting next page token...")
 		nextPageURL := fmt.Sprintf("%s?nextPageToken=%s", url, nextPageToken)
-		log.Println("Calling out to", nextPageURL)
 		resp := httpGetResponse(nextPageURL)
 		defer resp.Body.Close()
 
