@@ -43,9 +43,10 @@ type HostConfig struct {
 
 // PortMap represents an individual port mapping
 type PortMap struct {
-	PrivatePort int `json:"PrivatePort"`
-	PublicPort  int `json:"PublicPort"`
-	Type        int `json:"Type"`
+	IP          string `json:"IP"`
+	PrivatePort int    `json:"PrivatePort"`
+	PublicPort  int    `json:"PublicPort"`
+	Type        string `json:"Type"`
 }
 
 // Container represents a single container that comes back from the containers/json endpoint
