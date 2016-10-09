@@ -68,7 +68,15 @@ type Container struct {
 
 // ListContainersFromHost returns the containers on the host
 func ListContainersFromHost(host string) (containers []Container) {
-	url := fmt.Sprintf("http://%s:%d/containers/json", host, port)
+	return getContainers(fmt.Sprintf("http://%s:%d/containers/json", host, port))
+}
+
+// ListAllContainersFromHost returns all containers on the host
+func ListAllContainersFromHost(host string) []Container {
+	return getContainers(fmt.Sprintf("http://%s:%d/containers/json?all=1", host, port))
+}
+
+func getContainers(url string) (containers []Container) {
 	response := httpGetResponse(url)
 	defer response.Body.Close()
 
