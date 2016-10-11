@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
+	"strings"
 )
 
 var port = 2375
@@ -93,6 +95,29 @@ func getContainers(url string) (containers []Container) {
 	return containers
 }
 
+// DeleteContainer deletes the given container from the given host
+func DeleteContainer(host, nameOrID string, deleteVolumes, force bool) {
+	url := fmt.Sprintf("http://%s:%d/containers/%s", host, port, nameOrID)
+	queryStringParams := map[string]string{
+		"v":     strconv.FormatBool(deleteVolumes),
+		"force": strconv.FormatBool(force),
+	}
+	response := httpDeleteResponse(url, queryStringParams)
+	defer response.Body.Close()
+
+	if response.StatusCode == 200 || response.StatusCode == 204 {
+		log.Printf("%s successfully removed from %s's filesystem.\n", nameOrID, host)
+	} else if response.StatusCode == 400 {
+		log.Println("One of the supplied paramaters was bad", queryStringParams)
+	} else if response.StatusCode == 404 {
+		log.Printf("%s didn't exist on %s's filesystem.\n", nameOrID, host)
+	} else if response.StatusCode == 409 {
+		log.Printf("There was a conflict trying to remove %s from %s's filesystem.\n", nameOrID, host)
+	} else {
+		log.Printf("There was a server error trying to remove %s from %s.\n", nameOrID, host)
+	}
+}
+
 // ============================================================================
 // ============================= HTTP UTILS ===================================
 // ============================================================================
@@ -102,5 +127,26 @@ func httpGetResponse(url string) *http.Response {
 	if err != nil {
 		log.Fatal(err)
 	}
+	return response
+}
+
+func httpDeleteResponse(url string, queryStringParams map[string]string) *http.Response {
+	client := &http.Client{}
+	request, err := http.NewRequest(http.MethodDelete, url, strings.NewReader(""))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	queryString := request.URL.Query()
+	for key, value := range queryStringParams {
+		queryString.Add(key, value)
+	}
+	request.URL.RawQuery = queryString.Encode()
+
+	response, err := client.Do(request)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	return response
 }
