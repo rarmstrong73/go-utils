@@ -93,8 +93,8 @@ func getContainers(url string, queryStringParams map[string]string) (containers 
 	return containers
 }
 
-// DeleteContainer deletes the given container from the given host
-func DeleteContainer(host, nameOrID string, deleteVolumes, force bool) error {
+// RemoveContainer deletes the given container from the given host
+func RemoveContainer(host, nameOrID string, deleteVolumes, force bool) error {
 	url := fmt.Sprintf("http://%s:%d/containers/%s", host, port, nameOrID)
 	queryStringParams := map[string]string{
 		"v":     strconv.FormatBool(deleteVolumes),
@@ -114,6 +114,28 @@ func DeleteContainer(host, nameOrID string, deleteVolumes, force bool) error {
 	}
 
 	log.Printf("%s successfully removed from %s's filesystem.\n", nameOrID, host)
+	return nil
+}
+
+// RemoveImage will remove the image from the hosts filesystem
+func RemoveImage(host, image string, force, noPrune bool) error {
+	url := fmt.Sprintf("http://%s:%d/images/%s", host, port, image)
+	queryStringParams := map[string]string{
+		"force":   strconv.FormatBool(force),
+		"noprune": strconv.FormatBool(noPrune),
+	}
+	response := httpDeleteResponse(url, queryStringParams)
+	defer response.Body.Close()
+
+	if response.StatusCode == 404 {
+		return fmt.Errorf("%s didn't exist on %s's filesystem", image, host)
+	} else if response.StatusCode == 409 {
+		return fmt.Errorf("There was a conflict trying to remove %s from %s's filesystem", image, host)
+	} else if response.StatusCode == 500 {
+		return fmt.Errorf("There was an error trying to remove %s from %s", image, host)
+	}
+
+	log.Printf("%s successfully removed from %s's filesystem", image, host)
 	return nil
 }
 
