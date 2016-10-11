@@ -94,7 +94,7 @@ func getContainers(url string, queryStringParams map[string]string) (containers 
 }
 
 // DeleteContainer deletes the given container from the given host
-func DeleteContainer(host, nameOrID string, deleteVolumes, force bool) {
+func DeleteContainer(host, nameOrID string, deleteVolumes, force bool) error {
 	url := fmt.Sprintf("http://%s:%d/containers/%s", host, port, nameOrID)
 	queryStringParams := map[string]string{
 		"v":     strconv.FormatBool(deleteVolumes),
@@ -103,17 +103,18 @@ func DeleteContainer(host, nameOrID string, deleteVolumes, force bool) {
 	response := httpDeleteResponse(url, queryStringParams)
 	defer response.Body.Close()
 
-	if response.StatusCode == 200 || response.StatusCode == 204 {
-		log.Printf("%s successfully removed from %s's filesystem.\n", nameOrID, host)
-	} else if response.StatusCode == 400 {
-		log.Println("One of the supplied paramaters was bad", queryStringParams)
+	if response.StatusCode == 400 {
+		return fmt.Errorf("One of the supplied paramaters was bad %v", queryStringParams)
 	} else if response.StatusCode == 404 {
-		log.Printf("%s didn't exist on %s's filesystem.\n", nameOrID, host)
+		return fmt.Errorf("%s didn't exist on %s's filesystem.\n", nameOrID, host)
 	} else if response.StatusCode == 409 {
-		log.Printf("There was a conflict trying to remove %s from %s's filesystem.\n", nameOrID, host)
-	} else {
-		log.Printf("There was a server error trying to remove %s from %s.\n", nameOrID, host)
+		return fmt.Errorf("There was a conflict trying to remove %s from %s's filesystem.\n", nameOrID, host)
+	} else if response.StatusCode == 500 {
+		return fmt.Errorf("There was a server error trying to remove %s from %s.\n", nameOrID, host)
 	}
+
+	log.Printf("%s successfully removed from %s's filesystem.\n", nameOrID, host)
+	return nil
 }
 
 // ============================================================================
