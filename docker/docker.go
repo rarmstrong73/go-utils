@@ -69,17 +69,15 @@ type Container struct {
 }
 
 // ListContainersFromHost returns the containers on the host
-func ListContainersFromHost(host string) (containers []Container) {
-	return getContainers(fmt.Sprintf("http://%s:%d/containers/json", host, port))
+func ListContainersFromHost(host string, all bool) (containers []Container) {
+	queryStringParams := map[string]string{
+		"all": strconv.FormatBool(all),
+	}
+	return getContainers(fmt.Sprintf("http://%s:%d/containers/json", host, port), queryStringParams)
 }
 
-// ListAllContainersFromHost returns all containers on the host
-func ListAllContainersFromHost(host string) []Container {
-	return getContainers(fmt.Sprintf("http://%s:%d/containers/json?all=1", host, port))
-}
-
-func getContainers(url string) (containers []Container) {
-	response := httpGetResponse(url)
+func getContainers(url string, queryStringParams map[string]string) (containers []Container) {
+	response := httpGetResponse(url, queryStringParams)
 	defer response.Body.Close()
 
 	jsonBytes, err := ioutil.ReadAll(response.Body)
@@ -122,11 +120,23 @@ func DeleteContainer(host, nameOrID string, deleteVolumes, force bool) {
 // ============================= HTTP UTILS ===================================
 // ============================================================================
 
-func httpGetResponse(url string) *http.Response {
-	response, err := http.Get(url)
+func httpGetResponse(url string, queryStringParams map[string]string) *http.Response {
+	client := &http.Client{}
+	request, err := http.NewRequest(http.MethodGet, url, strings.NewReader(""))
 	if err != nil {
 		log.Fatal(err)
 	}
+	queryString := request.URL.Query()
+	for key, value := range queryStringParams {
+		queryString.Add(key, value)
+	}
+	request.URL.RawQuery = queryString.Encode()
+
+	response, err := client.Do(request)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	return response
 }
 
