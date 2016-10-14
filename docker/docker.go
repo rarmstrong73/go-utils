@@ -97,6 +97,8 @@ func getContainers(url string, queryStringParams map[string]string) (containers 
 		log.Fatal(err)
 	}
 
+	fmt.Println(string(jsonBytes))
+
 	err = json.Unmarshal(jsonBytes, &containers)
 	if err != nil {
 		log.Fatal(err)
