@@ -141,6 +141,8 @@ func ListImages(host string, all bool) (images []Image) {
 		log.Fatal(err)
 	}
 
+	log.Println(string(jsonBytes))
+
 	err = json.Unmarshal(jsonBytes, &images)
 	if err != nil {
 		log.Fatal(err)
