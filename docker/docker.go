@@ -71,6 +71,7 @@ type Container struct {
 // Image represents information about a docker image
 type Image struct {
 	RepoTags    []string          `json:"RepoTags"`
+	RepoDigests []string          `json:"RepoDigests"`
 	ID          string            `json:"Id"`
 	Created     int64             `json:"Created"`
 	Size        int64             `json:"Size"`
