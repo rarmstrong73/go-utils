@@ -73,6 +73,7 @@ type Image struct {
 	RepoTags    []string          `json:"RepoTags"`
 	RepoDigests []string          `json:"RepoDigests"`
 	ID          string            `json:"Id"`
+	ParentID    string            `json:"ParentId"`
 	Created     int32             `json:"Created"`
 	Size        int32             `json:"Size"`
 	VirtualSize int32             `json:"VirtualSize"`
