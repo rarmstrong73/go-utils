@@ -68,6 +68,16 @@ type Container struct {
 	NetworkSettings NetworkSettings   `json:"NetworkSettings"`
 }
 
+// Image represents information about a docker image
+type Image struct {
+	RepoTags    []string          `json:"RepoTags"`
+	ID          string            `json:"Id"`
+	Created     int64             `json:"Created"`
+	Size        int64             `json:"Size"`
+	VirtualSize int64             `json:"VirtualSize"`
+	Labels      map[string]string `json:"Labels"`
+}
+
 // ListContainersFromHost returns the containers on the host
 func ListContainersFromHost(host string, all bool) (containers []Container) {
 	queryStringParams := map[string]string{
@@ -115,6 +125,28 @@ func RemoveContainer(host, nameOrID string, deleteVolumes, force bool) error {
 
 	log.Printf("%s successfully removed from %s's filesystem.\n", nameOrID, host)
 	return nil
+}
+
+// ListImages returns the images on the host
+func ListImages(host string, all bool) (images []Image) {
+	queryStringParams := map[string]string{
+		"all": strconv.FormatBool(all),
+	}
+
+	response := httpGetResponse(fmt.Sprintf("http://%s:%d/images/json", host, port), queryStringParams)
+	defer response.Body.Close()
+
+	jsonBytes, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = json.Unmarshal(jsonBytes, &images)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return images
 }
 
 // CreateImage creates an image either by pulling it from the registry or by importing it
