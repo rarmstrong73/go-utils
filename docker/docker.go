@@ -73,14 +73,14 @@ type Image struct {
 	RepoTags    []string          `json:"RepoTags"`
 	RepoDigests []string          `json:"RepoDigests"`
 	ID          string            `json:"Id"`
-	Created     int64             `json:"Created"`
-	Size        int64             `json:"Size"`
-	VirtualSize int64             `json:"VirtualSize"`
+	Created     int32             `json:"Created"`
+	Size        int32             `json:"Size"`
+	VirtualSize int32             `json:"VirtualSize"`
 	Labels      map[string]string `json:"Labels"`
 }
 
-// ListContainersFromHost returns the containers on the host
-func ListContainersFromHost(host string, all bool) (containers []Container) {
+// ListContainers returns the containers on the host
+func ListContainers(host string, all bool) (containers []Container) {
 	queryStringParams := map[string]string{
 		"all": strconv.FormatBool(all),
 	}
