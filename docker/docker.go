@@ -117,6 +117,37 @@ func RemoveContainer(host, nameOrID string, deleteVolumes, force bool) error {
 	return nil
 }
 
+// CreateImage creates an image either by pulling it from the registry or by importing it
+func CreateImage(host, fromImage, fromSrc, repo, tag string) error {
+	url := fmt.Sprintf("http://%s:%d/images/create", host, port)
+	queryStringParams := map[string]string{}
+
+	if fromImage != "" {
+		queryStringParams["fromImage"] = fromImage
+	}
+
+	if fromSrc != "" {
+		queryStringParams["fromSrc"] = fromSrc
+	}
+
+	if repo != "" {
+		queryStringParams["repo"] = repo
+	}
+
+	if tag != "" {
+		queryStringParams["tag"] = tag
+	}
+
+	response := httpPostRequest(url, queryStringParams)
+	defer response.Body.Close()
+
+	if response.StatusCode != 200 {
+		return fmt.Errorf("Failed to start container")
+	}
+
+	return nil
+}
+
 // RemoveImage will remove the image from the hosts filesystem
 func RemoveImage(host, image string, force, noPrune bool) error {
 	url := fmt.Sprintf("http://%s:%d/images/%s", host, port, image)
@@ -144,26 +175,18 @@ func RemoveImage(host, image string, force, noPrune bool) error {
 // ============================================================================
 
 func httpGetResponse(url string, queryStringParams map[string]string) *http.Response {
-	client := &http.Client{}
-	request, err := http.NewRequest(http.MethodGet, url, strings.NewReader(""))
-	if err != nil {
-		log.Fatal(err)
-	}
-	queryString := request.URL.Query()
-	for key, value := range queryStringParams {
-		queryString.Add(key, value)
-	}
-	request.URL.RawQuery = queryString.Encode()
+	return doHTTPResponse(http.MethodGet, url, queryStringParams)
+}
 
-	response, err := client.Do(request)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return response
+func httpPostRequest(url string, queryStringParams map[string]string) *http.Response {
+	return doHTTPResponse(http.MethodPost, url, queryStringParams)
 }
 
 func httpDeleteResponse(url string, queryStringParams map[string]string) *http.Response {
+	return doHTTPResponse(http.MethodDelete, url, queryStringParams)
+}
+
+func doHTTPResponse(method, url string, queryStringParams map[string]string) *http.Response {
 	client := &http.Client{}
 	request, err := http.NewRequest(http.MethodDelete, url, strings.NewReader(""))
 	if err != nil {
