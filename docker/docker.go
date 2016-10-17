@@ -116,13 +116,13 @@ func RemoveContainer(host, nameOrID string, deleteVolumes, force bool) error {
 	defer response.Body.Close()
 
 	if response.StatusCode == 400 {
-		return fmt.Errorf("One of the supplied paramaters was bad %v", queryStringParams)
+		return fmt.Errorf("%d: One of the supplied paramaters was bad %v", response.StatusCode, queryStringParams)
 	} else if response.StatusCode == 404 {
-		return fmt.Errorf("%s didn't exist on %s's filesystem.\n", nameOrID, host)
+		return fmt.Errorf("%d: %s didn't exist on %s's filesystem.\n", response.StatusCode, nameOrID, host)
 	} else if response.StatusCode == 409 {
-		return fmt.Errorf("There was a conflict trying to remove %s from %s's filesystem.\n", nameOrID, host)
+		return fmt.Errorf("%d: There was a conflict trying to remove %s from %s's filesystem.\n", response.StatusCode, nameOrID, host)
 	} else if response.StatusCode == 500 {
-		return fmt.Errorf("There was a server error trying to remove %s from %s.\n", nameOrID, host)
+		return fmt.Errorf("%d: There was a server error trying to remove %s from %s.\n", response.StatusCode, nameOrID, host)
 	}
 
 	log.Printf("%s successfully removed from %s's filesystem.\n", nameOrID, host)
@@ -193,11 +193,11 @@ func RemoveImage(host, image string, force, noPrune bool) error {
 	defer response.Body.Close()
 
 	if response.StatusCode == 404 {
-		return fmt.Errorf("%s didn't exist on %s's filesystem", image, host)
+		return fmt.Errorf("%d: %s didn't exist on %s's filesystem", response.StatusCode, image, host)
 	} else if response.StatusCode == 409 {
-		return fmt.Errorf("There was a conflict trying to remove %s from %s's filesystem", image, host)
+		return fmt.Errorf("%d: There was a conflict trying to remove %s from %s's filesystem", response.StatusCode, image, host)
 	} else if response.StatusCode == 500 {
-		return fmt.Errorf("There was an error trying to remove %s from %s", image, host)
+		return fmt.Errorf("%d: There was an error trying to remove %s from %s", response.StatusCode, image, host)
 	}
 
 	log.Printf("%s successfully removed from %s's filesystem", image, host)
