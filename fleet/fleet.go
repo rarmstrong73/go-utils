@@ -168,9 +168,9 @@ func CreateUnit(host, name, desiredState string, options []Option) error {
 	return nil
 }
 
-// ModifyUnitDesiredState modifies the desired state of the given unit
-func ModifyUnitDesiredState(host, name, desiredState string) error {
-	url := fmt.Sprintf("http://%s:%d/fleet/%s/units/%s", host, port, apiVersion, name)
+// ModifyDesiredState modifies the desired state of the given unit
+func (unit Unit) ModifyDesiredState(host, desiredState string) error {
+	url := fmt.Sprintf("http://%s:%d/fleet/%s/units/%s", host, port, apiVersion, unit.Name)
 
 	body := map[string]string{
 		"desiredState": desiredState,
@@ -195,9 +195,9 @@ func ModifyUnitDesiredState(host, name, desiredState string) error {
 	return nil
 }
 
-// DestroyUnit destroys the unit
-func DestroyUnit(host, name string) error {
-	url := fmt.Sprintf("http://%s:%d/fleet/%s/units/%s", host, port, apiVersion, name)
+// Destroy destroys the unit
+func (unit Unit) Destroy(host string) error {
+	url := fmt.Sprintf("http://%s:%d/fleet/%s/units/%s", host, port, apiVersion, unit.Name)
 	response := httpDeleteResponse(url)
 	defer response.Body.Close()
 	if response.StatusCode != 204 {
