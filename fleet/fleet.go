@@ -195,9 +195,47 @@ func (unit Unit) ModifyDesiredState(host, desiredState string) error {
 	return nil
 }
 
+// ModifyDesiredState modifies the desired state of the given unit
+func (unitState UnitState) ModifyDesiredState(host, desiredState string) error {
+	url := fmt.Sprintf("http://%s:%d/fleet/%s/units/%s", host, port, apiVersion, unitState.Name)
+
+	body := map[string]string{
+		"desiredState": desiredState,
+	}
+
+	bodyBytes, err := json.Marshal(body)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	response := httpPutResponse(url, bodyBytes)
+	defer response.Body.Close()
+
+	if response.StatusCode == 400 {
+		return handleError(response.Body)
+	}
+
+	if response.StatusCode != 204 {
+		return handleError(response.Body)
+	}
+
+	return nil
+}
+
 // Destroy destroys the unit
 func (unit Unit) Destroy(host string) error {
 	url := fmt.Sprintf("http://%s:%d/fleet/%s/units/%s", host, port, apiVersion, unit.Name)
+	response := httpDeleteResponse(url)
+	defer response.Body.Close()
+	if response.StatusCode != 204 {
+		return handleError(response.Body)
+	}
+	return nil
+}
+
+// Destroy destroys the unit
+func (unitState UnitState) Destroy(host string) error {
+	url := fmt.Sprintf("http://%s:%d/fleet/%s/units/%s", host, port, apiVersion, unitState.Name)
 	response := httpDeleteResponse(url)
 	defer response.Body.Close()
 	if response.StatusCode != 204 {
