@@ -74,9 +74,9 @@ type Image struct {
 	RepoDigests []string          `json:"RepoDigests"`
 	ID          string            `json:"Id"`
 	ParentID    string            `json:"ParentId"`
-	Created     int32             `json:"Created"`
-	Size        int32             `json:"Size"`
-	VirtualSize int32             `json:"VirtualSize"`
+	Created     int64             `json:"Created"`
+	Size        int64             `json:"Size"`
+	VirtualSize int64             `json:"VirtualSize"`
 	Labels      map[string]string `json:"Labels"`
 }
 
@@ -195,6 +195,18 @@ func RemoveImage(host, image string, force, noPrune bool) error {
 	if response.StatusCode == 404 {
 		return fmt.Errorf("%d: %s didn't exist on %s's filesystem", response.StatusCode, image, host)
 	} else if response.StatusCode == 409 {
+		bodyBytes, _ := ioutil.ReadAll(response.Body)
+		bodyString := string(bodyBytes)
+		if strings.Contains(bodyString, "image is referenced in multiple repositories") {
+			log.Printf("%s must be fored because it is referenced in multiple repositories", image)
+			err := RemoveImage(host, image, true, false)
+			if err != nil {
+				return fmt.Errorf("%d: There was a error trying to remove %s from %s's filesystem", response.StatusCode, image, host)
+			}
+			return nil
+		} else if strings.Contains(bodyString, "image is being used by running container") {
+			return nil
+		}
 		return fmt.Errorf("%d: There was a conflict trying to remove %s from %s's filesystem", response.StatusCode, image, host)
 	} else if response.StatusCode == 500 {
 		return fmt.Errorf("%d: There was an error trying to remove %s from %s", response.StatusCode, image, host)
