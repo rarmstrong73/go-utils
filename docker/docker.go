@@ -197,14 +197,14 @@ func RemoveImage(host, image string, force, noPrune bool) error {
 	} else if response.StatusCode == 409 {
 		bodyBytes, _ := ioutil.ReadAll(response.Body)
 		bodyString := string(bodyBytes)
-		if strings.Contains(bodyString, "image is referenced in multiple repositories") {
+		if strings.Contains(bodyString, "image is being used by running container") {
+			return nil
+		} else if strings.Contains(bodyString, "image is referenced in multiple repositories") {
 			log.Printf("%s must be fored because it is referenced in multiple repositories", image)
 			err := RemoveImage(host, image, true, false)
 			if err != nil {
 				return fmt.Errorf("%d: There was a error trying to remove %s from %s's filesystem", response.StatusCode, image, host)
 			}
-			return nil
-		} else if strings.Contains(bodyString, "image is being used by running container") {
 			return nil
 		}
 		return fmt.Errorf("%d: There was a conflict trying to remove %s from %s's filesystem", response.StatusCode, image, host)
