@@ -106,7 +106,7 @@ func getContainers(url string, queryStringParams map[string]string) (containers 
 		log.Fatal(err)
 	}
 
-	return nil, err
+	return containers, err
 }
 
 // RemoveContainer deletes the given container from the given host
