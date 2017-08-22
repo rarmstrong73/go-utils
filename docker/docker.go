@@ -81,15 +81,19 @@ type Image struct {
 }
 
 // ListContainers returns the containers on the host
-func ListContainers(host string, all bool) (containers []Container) {
+func ListContainers(host string, all bool) (containers []Container, err error) {
 	queryStringParams := map[string]string{
 		"all": strconv.FormatBool(all),
 	}
-	return getContainers(fmt.Sprintf("http://%s:%d/containers/json", host, port), queryStringParams)
+	containers, err = getContainers(fmt.Sprintf("http://%s:%d/containers/json", host, port), queryStringParams)
+	return containers, err
 }
 
-func getContainers(url string, queryStringParams map[string]string) (containers []Container) {
-	response := httpGetResponse(url, queryStringParams)
+func getContainers(url string, queryStringParams map[string]string) (containers []Container, err error) {
+	response, err := httpGetResponse(url, queryStringParams)
+	if err != nil {
+		return nil, err
+	}
 	defer response.Body.Close()
 
 	jsonBytes, err := ioutil.ReadAll(response.Body)
@@ -102,7 +106,7 @@ func getContainers(url string, queryStringParams map[string]string) (containers 
 		log.Fatal(err)
 	}
 
-	return containers
+	return nil, err
 }
 
 // RemoveContainer deletes the given container from the given host
@@ -112,7 +116,10 @@ func RemoveContainer(host, nameOrID string, deleteVolumes, force bool) error {
 		"v":     strconv.FormatBool(deleteVolumes),
 		"force": strconv.FormatBool(force),
 	}
-	response := httpDeleteResponse(url, queryStringParams)
+	response, err := httpDeleteResponse(url, queryStringParams)
+	if err != nil {
+		return err
+	}
 	defer response.Body.Close()
 
 	if response.StatusCode == 400 {
@@ -135,7 +142,10 @@ func ListImages(host string, all bool) (images []Image) {
 		"all": strconv.FormatBool(all),
 	}
 
-	response := httpGetResponse(fmt.Sprintf("http://%s:%d/images/json", host, port), queryStringParams)
+	response, err := httpGetResponse(fmt.Sprintf("http://%s:%d/images/json", host, port), queryStringParams)
+	if err != nil {
+		log.Fatal(err)
+	}
 	defer response.Body.Close()
 
 	jsonBytes, err := ioutil.ReadAll(response.Body)
@@ -172,7 +182,10 @@ func CreateImage(host, fromImage, fromSrc, repo, tag string) error {
 		queryStringParams["tag"] = tag
 	}
 
-	response := httpPostRequest(url, queryStringParams)
+	response, err := httpPostRequest(url, queryStringParams)
+	if err != nil {
+		return err
+	}
 	defer response.Body.Close()
 
 	if response.StatusCode != 200 {
@@ -189,7 +202,10 @@ func RemoveImage(host, image string, force, noPrune bool) error {
 		"force":   strconv.FormatBool(force),
 		"noprune": strconv.FormatBool(noPrune),
 	}
-	response := httpDeleteResponse(url, queryStringParams)
+	response, err := httpDeleteResponse(url, queryStringParams)
+	if err != nil {
+		return err
+	}
 	defer response.Body.Close()
 
 	if response.StatusCode == 404 {
@@ -220,19 +236,22 @@ func RemoveImage(host, image string, force, noPrune bool) error {
 // ============================= HTTP UTILS ===================================
 // ============================================================================
 
-func httpGetResponse(url string, queryStringParams map[string]string) *http.Response {
-	return doHTTPResponse(http.MethodGet, url, queryStringParams)
+func httpGetResponse(url string, queryStringParams map[string]string) (*http.Response, error) {
+	resp, err := doHTTPResponse(http.MethodDelete, url, queryStringParams)
+	return resp, err
 }
 
-func httpPostRequest(url string, queryStringParams map[string]string) *http.Response {
-	return doHTTPResponse(http.MethodPost, url, queryStringParams)
+func httpPostRequest(url string, queryStringParams map[string]string) (*http.Response, error) {
+	resp, err := doHTTPResponse(http.MethodDelete, url, queryStringParams)
+	return resp, err
 }
 
-func httpDeleteResponse(url string, queryStringParams map[string]string) *http.Response {
-	return doHTTPResponse(http.MethodDelete, url, queryStringParams)
+func httpDeleteResponse(url string, queryStringParams map[string]string) (*http.Response, error) {
+	resp, err := doHTTPResponse(http.MethodDelete, url, queryStringParams)
+	return resp, err
 }
 
-func doHTTPResponse(method, url string, queryStringParams map[string]string) *http.Response {
+func doHTTPResponse(method, url string, queryStringParams map[string]string) (*http.Response, error) {
 	client := &http.Client{}
 	request, err := http.NewRequest(method, url, strings.NewReader(""))
 	if err != nil {
@@ -246,9 +265,5 @@ func doHTTPResponse(method, url string, queryStringParams map[string]string) *ht
 	request.URL.RawQuery = queryString.Encode()
 
 	response, err := client.Do(request)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return response
+	return response, err
 }
