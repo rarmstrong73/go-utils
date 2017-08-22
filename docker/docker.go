@@ -98,12 +98,12 @@ func getContainers(url string, queryStringParams map[string]string) (containers 
 
 	jsonBytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	err = json.Unmarshal(jsonBytes, &containers)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	return containers, err
@@ -137,28 +137,28 @@ func RemoveContainer(host, nameOrID string, deleteVolumes, force bool) error {
 }
 
 // ListImages returns the images on the host
-func ListImages(host string, all bool) (images []Image) {
+func ListImages(host string, all bool) (images []Image, err error) {
 	queryStringParams := map[string]string{
 		"all": strconv.FormatBool(all),
 	}
 
 	response, err := httpGetResponse(fmt.Sprintf("http://%s:%d/images/json", host, port), queryStringParams)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	defer response.Body.Close()
 
 	jsonBytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	err = json.Unmarshal(jsonBytes, &images)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	return images
+	return images, nil
 }
 
 // CreateImage creates an image either by pulling it from the registry or by importing it
