@@ -255,7 +255,7 @@ func doHTTPResponse(method, url string, queryStringParams map[string]string) (*h
 	client := &http.Client{}
 	request, err := http.NewRequest(method, url, strings.NewReader(""))
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	queryString := request.URL.Query()
