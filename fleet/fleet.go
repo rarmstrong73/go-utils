@@ -83,20 +83,23 @@ type ErrorResponse struct {
 }
 
 // ListUnits returns all fleet units in the host's cluster
-func ListUnits(host string) (units []Unit) {
+func ListUnits(host string) (units []Unit, err error) {
 	url := fmt.Sprintf("http://%s:%d/fleet/%s/units", host, port, apiVersion)
-	response := httpGetResponse(url)
+	response, err := httpGetResponse(url)
+	if err != nil {
+		return nil, err
+	}
 	defer response.Body.Close()
 
 	jsonBytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	var fleetResponse UnitsResponse
 	err = json.Unmarshal(jsonBytes, &fleetResponse)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	units = append(units, fleetResponse.Units...)
@@ -104,12 +107,15 @@ func ListUnits(host string) (units []Unit) {
 
 	for nextPageToken != "" {
 		nextPageURL := fmt.Sprintf("%s?nextPageToken=%s", url, nextPageToken)
-		resp := httpGetResponse(nextPageURL)
+		resp, err := httpGetResponse(nextPageURL)
+		if err != nil {
+			return nil, err
+		}
 		defer resp.Body.Close()
 
 		jsonContent, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 
 		var nextPageFleetResponse UnitsResponse
@@ -119,12 +125,15 @@ func ListUnits(host string) (units []Unit) {
 		nextPageToken = nextPageFleetResponse.NextPageToken
 	}
 
-	return units
+	return units, err
 }
 
 // ListUnitsByName returns the template and any known units with the given name
-func ListUnitsByName(host, name string) (template Unit, units []Unit) {
-	allUnits := ListUnits(host)
+func ListUnitsByName(host, name string) (template Unit, units []Unit, err error) {
+	allUnits, err := ListUnits(host)
+	if err != nil {
+		return Unit{}, nil, err
+	}
 	for _, unit := range allUnits {
 		if strings.HasPrefix(unit.Name, fmt.Sprintf("%s@", name)) {
 			if strings.Contains(unit.Name, "@.") {
@@ -134,7 +143,7 @@ func ListUnitsByName(host, name string) (template Unit, units []Unit) {
 			}
 		}
 	}
-	return template, units
+	return template, units, err
 }
 
 // CreateUnit creates a unit with the given name, desired state, and options
@@ -150,7 +159,10 @@ func CreateUnit(host, name, desiredState string, options []Option) error {
 		log.Fatal(err)
 	}
 
-	response := httpPutResponse(url, bodyBytes)
+	response, err := httpPutResponse(url, bodyBytes)
+	if err != nil {
+		return err
+	}
 	defer response.Body.Close()
 
 	if response.StatusCode == 400 {
@@ -181,7 +193,10 @@ func (unit Unit) ModifyDesiredState(host, desiredState string) error {
 		log.Fatal(err)
 	}
 
-	response := httpPutResponse(url, bodyBytes)
+	response, err := httpPutResponse(url, bodyBytes)
+	if err != nil {
+		return err
+	}
 	defer response.Body.Close()
 
 	if response.StatusCode == 400 {
@@ -208,7 +223,10 @@ func (unitState UnitState) ModifyDesiredState(host, desiredState string) error {
 		log.Fatal(err)
 	}
 
-	response := httpPutResponse(url, bodyBytes)
+	response, err := httpPutResponse(url, bodyBytes)
+	if err != nil {
+		return err
+	}
 	defer response.Body.Close()
 
 	if response.StatusCode == 400 {
@@ -225,7 +243,10 @@ func (unitState UnitState) ModifyDesiredState(host, desiredState string) error {
 // Destroy destroys the unit
 func (unit Unit) Destroy(host string) error {
 	url := fmt.Sprintf("http://%s:%d/fleet/%s/units/%s", host, port, apiVersion, unit.Name)
-	response := httpDeleteResponse(url)
+	response, err := httpDeleteResponse(url)
+	if err != nil {
+		return err
+	}
 	defer response.Body.Close()
 	if response.StatusCode != 204 {
 		return handleError(response.Body)
@@ -236,7 +257,10 @@ func (unit Unit) Destroy(host string) error {
 // Destroy destroys the unit
 func (unitState UnitState) Destroy(host string) error {
 	url := fmt.Sprintf("http://%s:%d/fleet/%s/units/%s", host, port, apiVersion, unitState.Name)
-	response := httpDeleteResponse(url)
+	response, err := httpDeleteResponse(url)
+	if err != nil {
+		return err
+	}
 	defer response.Body.Close()
 	if response.StatusCode != 204 {
 		return handleError(response.Body)
@@ -245,9 +269,12 @@ func (unitState UnitState) Destroy(host string) error {
 }
 
 // ListUnitStates returns all unit states in the host's cluster
-func ListUnitStates(host string) (unitStates []UnitState) {
+func ListUnitStates(host string) (unitStates []UnitState, err error) {
 	url := fmt.Sprintf("http://%s:%d/fleet/%s/state", host, port, apiVersion)
-	response := httpGetResponse(url)
+	response, err := httpGetResponse(url)
+	if err != nil {
+		return nil, err
+	}
 	defer response.Body.Close()
 
 	jsonBytes, err := ioutil.ReadAll(response.Body)
@@ -266,93 +293,108 @@ func ListUnitStates(host string) (unitStates []UnitState) {
 
 	for nextPageToken != "" {
 		nextPageURL := fmt.Sprintf("%s?nextPageToken=%s", url, nextPageToken)
-		resp := httpGetResponse(nextPageURL)
+		resp, err := httpGetResponse(nextPageURL)
+		if err != nil {
+			return nil, err
+		}
 		defer resp.Body.Close()
 
 		jsonContent, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 
 		var nextPageFleetStateResponse UnitStateResponse
 		err = json.Unmarshal(jsonContent, &nextPageFleetStateResponse)
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 
 		unitStates = append(unitStates, nextPageFleetStateResponse.States...)
 		nextPageToken = nextPageFleetStateResponse.NextPageToken
 	}
 
-	return unitStates
+	return unitStates, err
 }
 
 // ListUnitStatesByName returns a list of unit states with the given name
-func ListUnitStatesByName(host, name string) (unitStates []UnitState) {
-	allUnitStates := ListUnitStates(host)
+func ListUnitStatesByName(host, name string) (unitStates []UnitState, err error) {
+	allUnitStates, err := ListUnitStates(host)
+	if err != nil {
+		return nil, err
+	}
 	for _, unitState := range allUnitStates {
 		if strings.HasPrefix(unitState.Name, fmt.Sprintf("%s@", name)) {
 			unitStates = append(unitStates, unitState)
 		}
 	}
-	return unitStates
+	return unitStates, err
 }
 
 // GetUnitStatesByMachineID returns the unit states with the given machineID
-func GetUnitStatesByMachineID(host, machineID string) (unitStates []UnitState) {
+func GetUnitStatesByMachineID(host, machineID string) (unitStates []UnitState, err error) {
 	url := fmt.Sprintf("http://%s:%d/fleet/%s/state?machineID=%s", host, port, apiVersion, machineID)
-	response := httpGetResponse(url)
+	response, err := httpGetResponse(url)
+	if err != nil {
+		return nil, err
+	}
 	defer response.Body.Close()
 
 	responseBytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	var unitStateResponse UnitStateResponse
 	err = json.Unmarshal(responseBytes, &unitStateResponse)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	return unitStateResponse.States
+	return unitStateResponse.States, err
 }
 
 // GetUnitStatesByUnitName returns the unit states with the given unit name
-func GetUnitStatesByUnitName(host, unitName string) (unitStates []UnitState) {
+func GetUnitStatesByUnitName(host, unitName string) (unitStates []UnitState, err error) {
 	url := fmt.Sprintf("http://%s:%d/fleet/%s/state?unitName=%s", host, port, apiVersion, unitName)
-	response := httpGetResponse(url)
+	response, err := httpGetResponse(url)
+	if err != nil {
+		return nil, err
+	}
 	defer response.Body.Close()
 
 	responseBytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	var unitStateResponse UnitStateResponse
 	err = json.Unmarshal(responseBytes, &unitStateResponse)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	return unitStateResponse.States
+	return unitStateResponse.States, err
 }
 
 // ListMachines returns all machines in the host's cluster
-func ListMachines(host string) (machines []Machine) {
+func ListMachines(host string) (machines []Machine, err error) {
 	url := fmt.Sprintf("http://%s:%d/fleet/%s/machines", host, port, apiVersion)
-	response := httpGetResponse(url)
+	response, err := httpGetResponse(url)
+	if err != nil {
+		return nil, err
+	}
 	defer response.Body.Close()
 
 	jsonBytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	var fleetMachinesResponse MachinesResponse
 	err = json.Unmarshal(jsonBytes, &fleetMachinesResponse)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	machines = append(machines, fleetMachinesResponse.Machines...)
@@ -360,35 +402,53 @@ func ListMachines(host string) (machines []Machine) {
 
 	for nextPageToken != "" {
 		nextPageURL := fmt.Sprintf("%s?nextPageToken=%s", url, nextPageToken)
-		resp := httpGetResponse(nextPageURL)
+		resp, err := httpGetResponse(nextPageURL)
+		if err != nil {
+			return nil, err
+		}
 		defer resp.Body.Close()
 
 		jsonContent, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 
 		var nextPageFleetMachinesResponse MachinesResponse
 		err = json.Unmarshal(jsonContent, &nextPageFleetMachinesResponse)
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 
 		machines = append(machines, nextPageFleetMachinesResponse.Machines...)
 		nextPageToken = nextPageFleetMachinesResponse.NextPageToken
 	}
-	return machines
+	return machines, err
 }
 
 // GetStateOfFleet returns all units, states, and machines in the host's cluster
-func GetStateOfFleet(host string) (units []Unit, unitStates []UnitState, machines []Machine) {
-	return ListUnits(host), ListUnitStates(host), ListMachines(host)
+func GetStateOfFleet(host string) (units []Unit, unitStates []UnitState, machines []Machine, err error) {
+	units, err = ListUnits(host)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	unitStates, err = ListUnitStates(host)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	machines, err = ListMachines(host)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	return units, unitStates, machines, err
 }
 
 // GetUnit returns the single requested unit
 func GetUnit(host, name string) (unit Unit, err error) {
 	url := fmt.Sprintf("http://%s:%d/fleet/%s/units/%s", host, port, apiVersion, name)
-	response := httpGetResponse(url)
+	response, err := httpGetResponse(url)
+	if err != nil {
+		return Unit{}, err
+	}
 	defer response.Body.Close()
 
 	if response.StatusCode == 404 {
@@ -401,22 +461,25 @@ func GetUnit(host, name string) (unit Unit, err error) {
 
 	jsonBytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		log.Fatal(err)
+		return Unit{}, err
 	}
 	err = json.Unmarshal(jsonBytes, &unit)
-	return unit, nil
+	if err != nil {
+		return Unit{}, err
+	}
+	return unit, err
 }
 
 func handleError(body io.ReadCloser) error {
 	errorBytes, err := ioutil.ReadAll(body)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	var errorResponse ErrorResponse
 	err = json.Unmarshal(errorBytes, &errorResponse)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	return fmt.Errorf("%d: %s", errorResponse.Error.Code, errorResponse.Error.Message)
@@ -426,37 +489,27 @@ func handleError(body io.ReadCloser) error {
 // ============================= HTTP UTILS ===================================
 // ============================================================================
 
-func httpGetResponse(url string) *http.Response {
+func httpGetResponse(url string) (*http.Response, error) {
 	response, err := http.Get(url)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return response
+	return response, err
 }
 
-func httpPutResponse(url string, body []byte) *http.Response {
+func httpPutResponse(url string, body []byte) (*http.Response, error) {
 	client := &http.Client{}
 	request, err := http.NewRequest(http.MethodPut, url, bytes.NewReader(body))
 
 	request.Header.Add("Content-Type", "application/json")
 
 	response, err := client.Do(request)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return response
+	return response, err
 }
 
-func httpDeleteResponse(url string) *http.Response {
+func httpDeleteResponse(url string) (*http.Response, error) {
 	client := &http.Client{}
 	request, err := http.NewRequest(http.MethodDelete, url, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 	response, err := client.Do(request)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return response
+	return response, err
 }
